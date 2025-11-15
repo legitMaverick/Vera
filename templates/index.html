@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vera. - {{ current_category }} News</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Custom styles for BBC-like theme and layout (unchanged) */
+        :root {
+            --bbc-red: #bb1919;
+            --sidebar-dark: #1e1e1e;
+            --sidebar-light: #2c2c2c;
+            --text-light: #f5f5f5;
+            --text-hover: #ffffff;
+            --bg-body: #ffffff;
+            
+            /* --- ADDED Login/Register Specific Colors --- */
+            --dark-background: #1A1A1A;
+            --input-background: #2A2A2A;
+            --border-color: #333333;
+            --text-color-login: #E0E0E0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: margin-left 0.3s ease-in-out;
+        }
+
+        /* Sidebar styling - initially wide */
+        #sidebar {
+            width: 280px;
+            transition: width 0.3s ease-in-out;
+        }
+        
+        /* Main content area shifts with the sidebar */
+        #main-content-wrapper {
+            margin-left: 280px;
+            transition: margin-left 0.3s ease-in-out;
+        }
+        
+        /* Collapsed state */
+        .sidebar-collapsed #sidebar {
+            width: 80px;
+        }
+
+        .sidebar-collapsed #main-content-wrapper {
+            margin-left: 80px;
+        }
+        
+        .sidebar-collapsed .nav-text {
+            display: none;
+        }
+
+        .sidebar-collapsed .lg\:block {
+            display: none !important;
+        }
+
+        /* Ensure icon visibility in collapsed state */
+        .sidebar-collapsed #sidebar .lucide {
+            margin-right: 0 !important;
+            min-width: 24px;
+        }
+
+        /* BBC-style red divider */
+        .red-divider {
+            height: 4px;
+            background-color: var(--bbc-red);
+        }
+        
+        /* Active state for sidebar links */
+        .nav-active {
+             background-color: var(--bbc-red) !important;
+             color: var(--text-hover) !important;
+        }
+        /* Specific color classes for categories (for article cards) */
+        .category-business { color: #2563eb; } /* Tailwind blue-600 */
+        .category-sports { color: #16a34a; } /* Tailwind green-600 */
+        .category-science { color: #9333ea; } /* Tailwind purple-600 */
+        .category-entertainment { color: #d97706; } /* Tailwind yellow-600 */
+        .category-world-news, .category-home, .category-placeholder { color: var(--bbc-red); } /* Red for general/world/placeholder */
+        
+        /* --- Modal Styling (Applies to Auth, Profile, History, Summary, False News, and Sentiment Modals) --- */
+        #auth-modal, #profile-modal, #history-modal, #summary-modal, #false-news-modal, #sentiment-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85); /* Slightly darker background */
+            display: none; /* Controlled by JS */
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+        }
+
+        .auth-container {
+            background-color: #222222;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+            width: 100%;
+            max-width: 400px; /* Default for auth/profile */
+            padding: 30px;
+            box-sizing: border-box;
+            border: 1px solid var(--border-color);
+            color: var(--text-color-login);
+        }
+        /* Style for wider History, Summary, False News, and Sentiment Modals */
+        #history-modal .auth-container, #summary-modal .auth-container, #false-news-modal .auth-container, #sentiment-modal .auth-container {
+            max-width: 600px;
+            padding: 40px;
+        }
+
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--bbc-red);
+            font-size: 2em;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 25px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 12px 0;
+            text-align: center;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 700;
+            color: var(--text-color-login);
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab-button:hover:not(.active) {
+            color: var(--bbc-red);
+        }
+
+        .tab-button.active {
+            color: var(--bbc-red);
+            border-bottom: 3px solid var(--bbc-red);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            background-color: var(--input-background);
+            color: var(--text-color-login);
+            font-size: 1em;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-group input:focus, .form-group textarea:focus {
+            border-color: var(--bbc-red);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(187, 25, 25, 0.3);
+        }
+        
+        /* Specific input styling for lighter background based on image */
+        #registerName, #registerEmail {
+            background-color: #f5f5f5 !important;
+            color: #1a1a1a !important;
+        }
+
+        .auth-button {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--bbc-red);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .auth-button:hover {
+            background-color: #8c1313;
+        }
+
+        .toggle-message {
+            text-align: center;
+            margin-top: 25px;
+            font-size: 0.9em;
+        }
+
+        .toggle-message a {
+            color: var(--bbc-red);
+            text-decoration: none;
+            font-weight: 700;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .toggle-message a:hover {
+            color: #8c1313;
+            text-decoration: underline;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 min-h-screen">
+    <aside id="sidebar" class="fixed top-0 left-0 h-full bg-[--sidebar-dark] text-[--text-light] shadow-xl z-30 flex flex-col">
+        <div class="p-6 pb-2 mb-4 bg-gray-900/50 flex items-center justify-between">
+            <h1 class="text-xl font-bold text-[--text-light] nav-text whitespace-nowrap">Veritas Chronicle</h1>
+            <button id="toggle-sidebar" class="p-1 rounded-full hover:bg-[--sidebar-light] text-[--text-light]">
+                <i data-lucide="menu" class="w-6 h-6"></i>
+            </button>
+        </div>
+
+        <nav class="flex-grow space-y-2 p-4 pt-0">
+            {% set home_active = 'nav-active' if current_category == 'Home' or current_category == 'World News' else '' %}
+            <a href="{{ url_for('home') }}" class="flex items-center p-3 rounded-lg hover:bg-[--sidebar-light] transition duration-150 {{ home_active }}">
+                <i data-lucide="home" class="w-5 h-5 mr-3"></i>
+                <span class="nav-text text-sm font-medium">Home</span>
+            </a>
+
+            <div class="relative">
+                <button id="category-dropdown-btn" class="flex items-center justify-between w-full p-3 rounded-lg hover:bg-[--sidebar-light] transition duration-150 focus:outline-none">
+                    <div class="flex items-center">
+                        <i data-lucide="list-collapse" class="w-5 h-5 mr-3"></i>
+                        <span class="nav-text text-sm font-medium lg:block">Categories</span>
+                    </div>
+                    <i data-lucide="chevron-down" class="w-4 h-4 transition-transform nav-text"></i>
+                </button>
+                
+                <div id="category-dropdown-menu" class="hidden absolute z-40 mt-1 w-56 bg-[--sidebar-light] rounded-md shadow-lg py-1 nav-text">
+                    
+                    {% for cat in categories %}
+                        {% set cat_name_lower = cat.lower() %}
+                        {% set link_slug = cat_name_lower.replace(' ', '-') %}
+                        
+                        {% if cat_name_lower != 'home' %}
+                            {% set active_class = 'bg-gray-700/50' if current_category.lower().replace(' ', '-') == link_slug else '' %}
+                            
+                            <a href="{{ url_for('business_page') if link_slug == 'business' else url_for('category_placeholder', category_name=link_slug) }}"
+                               class="block px-4 py-2 text-sm hover:bg-gray-700/50 {{ active_class }}">
+                                {{ cat }}
+                            </a>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="py-2"></div> <h3 class="text-xs font-semibold uppercase text-gray-500 px-3 nav-text">Tools</h3>
+            
+            <a href="#" id="open-sentiment-modal" class="flex items-center p-3 rounded-lg hover:bg-[--sidebar-light] transition duration-150">
+                <i data-lucide="smile" class="w-5 h-5 mr-3"></i>
+                <span class="nav-text text-sm font-medium">Sentiment Analysis</span>
+            </a>
+            <a href="#" id="open-false-news-modal" class="flex items-center p-3 rounded-lg hover:bg-[--sidebar-light] transition duration-150">
+                <i data-lucide="image-search" class="w-5 h-5 mr-3"></i>
+                <span class="nav-text text-sm font-medium">Image Search (False News)</span>
+            </a>
+            <a href="#" id="open-summary-modal" class="flex items-center p-3 rounded-lg hover:bg-[--sidebar-light] transition duration-150"> <i data-lucide="file-text" class="w-5 h-5 mr-3"></i>
+                <span class="nav-text text-sm font-medium">Get News Summary</span>
+            </a>
+            <a href="#" id="open-history-modal" class="flex items-center p-3 rounded-lg hover:bg-[--sidebar-light] transition duration-150">
+                <i data-lucide="history" class="w-5 h-5 mr-3"></i>
+                <span class="nav-text text-sm font-medium">Reading History</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-gray-700/50 mt-auto">
+            <div id="auth-link-container">
+                <a href="#" id="open-auth-modal" class="flex items-center p-3 rounded-lg bg-[--bbc-red] hover:bg-red-700 transition duration-150">
+                    <i data-lucide="user" class="w-5 h-5 mr-3 text-white"></i>
+                    <span class="nav-text text-sm font-medium text-white">Sign In / Register</span>
+                </a>
+            </div>
+
+            <div id="profile-display" class="hidden">
+                <a href="#" id="open-profile-modal" class="flex items-center justify-start p-3 rounded-lg hover:bg-[--sidebar-light] transition duration-150 group">
+                    <i data-lucide="circle-user" class="w-6 h-6 mr-3 text-[--bbc-red]"></i>
+                    <span class="nav-text text-sm font-medium text-white" id="profile-username">Profile</span>
+                </a>
+            </div>
+        </div>
+    </aside>
+
+    <main id="main-content-wrapper" class="p-4 md:p-8">
+        
+        <header class="mb-8">
+            <div class="flex items-center justify-between pb-2">
+                <h2 class="text-3xl md:text-5xl font-extrabold text-gray-900 tracking-tight">{{ current_category }}</h2>
+                <span class="text-lg text-gray-500 hidden sm:block">{{ current_date }}</span>
+            </div>
+            <div class="red-divider w-full"></div>
+        </header>
+
+        <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            
+            {% if articles %}
+                {% for article in articles %}
+                
+                <article class="col-span-1 {% if loop.first %}lg:col-span-2{% endif %} bg-white rounded-xl shadow-lg hover:shadow-xl transition duration-300 overflow-hidden">
+                    
+                    {% if article.image_url %}
+                    <img src="{{ article.image_url }}"
+                             onerror="this.onerror=null;this.src='https://placehold.co/800x450/444444/ffffff?text=Image+Not+Found'"
+                             alt="{{ article.title }}" class="w-full h-64 object-cover">
+                    {% else %}
+                    <div class="w-full h-64 bg-gray-200 flex items-center justify-center text-gray-500">No Image Available</div>
+                    {% endif %}
+                    
+                    <div class="p-6">
+                        <span class="text-sm font-semibold uppercase category-{{ article.category }}">{{ article.category | replace('-', ' ') | title }}</span>
+                        
+                        <h3 class="mt-2 text-2xl font-bold leading-tight text-gray-900 hover:text-red-700">
+                            <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">
+                                {{ article.title }}
+                            </a>
+                        </h3>
+                        <p class="mt-4 text-gray-600 line-clamp-3">
+                            {{ article.description if article.description else 'No description available for this article.' }}
+                        </p>
+                        <div class="mt-4 flex justify-between items-center text-sm text-gray-500">
+                            <span>Source: {{ article.source }}</span>
+                            <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer" class="font-medium text-[--bbc-red] hover:text-red-700"
+                                data-article-title="{{ article.title }}"
+                                data-article-source="{{ article.source }}">
+                                Read Full Story &rarr;
+                            </a>
+                        </div>
+                    </div>
+                </article>
+                {% endfor %}
+            {% else %}
+                <p class="col-span-full text-center text-gray-500 p-10">
+                    No articles found for the **{{ current_category }}** category.
+                    {% if current_category != 'Home' and current_category != 'Business' %}
+                        <br>This category feature is currently a placeholder. Please check back for **Home** or **Business** news.
+                    {% endif %}
+                </p>
+            {% endif %}
+
+        </section>
+
+        <footer class="mt-12 pt-6 border-t border-gray-300 text-center text-gray-500 text-sm">
+            &copy; 2025 Veritas Chronicle. All rights reserved. Content aggregated from various sources.
+        </footer>
+
+    </main>
+    
+    <div id="auth-modal" class="hidden">
+        <div class="auth-container">
+            <div class="auth-header">Veritas Chronicle</div>
+
+            <div class="tabs">
+                <button class="tab-button active" id="loginTab">Login</button>
+                <button class="tab-button" id="registerTab">Register</button>
+            </div>
+
+            <div id="loginForm">
+                <form onsubmit="return false;">
+                    <div class="form-group">
+                        <label for="loginEmail">Email:</label>
+                        <input type="email" id="loginEmail" name="email" placeholder="Enter your email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password:</label>
+                        <input type="password" id="loginPassword" name="password" placeholder="Enter your password" required>
+                    </div>
+                    <button type="submit" class="auth-button">Login</button>
+                </form>
+                <div class="toggle-message">
+                    Don't have an account? <a id="showRegister">Register here</a>
+                </div>
+            </div>
+
+            <div id="registerForm" class="hidden">
+                <form onsubmit="return false;">
+                    <div class="form-group">
+                        <label for="registerName">Full Name:</label>
+                        <input type="text" id="registerName" name="fullName" value="Krish Astwal" placeholder="Enter your full name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerEmail">Email:</label>
+                        <input type="email" id="registerEmail" name="email" value="krishastwal002@gmail.com" placeholder="Enter your email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerPassword">Password:</label>
+                        <input type="password" id="registerPassword" name="password" placeholder="Create a password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm Password:</label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm your password" required>
+                    </div>
+                    <button type="submit" class="auth-button">Register</button>
+                </form>
+                <div class="toggle-message">
+                    Already have an account? <a id="showLogin">Login here</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="profile-modal" class="hidden">
+        <div class="auth-container">
+            <div class="auth-header" style="font-size: 1.5em; margin-bottom: 20px;">Profile Settings</div>
+
+            <div class="form-group text-center">
+                <label for="file-upload" class="block mb-4 text-sm font-medium">Click to Change Profile Picture</label>
+                <img id="current-profile-pic" src="https://via.placeholder.com/100/bb1919/ffffff?text=U"
+                    alt="Profile Icon" class="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-white cursor-pointer hover:opacity-80 transition"
+                    onclick="document.getElementById('file-upload').click()">
+                
+                <input type="file" id="file-upload" class="hidden" accept="image/*">
+            </div>
+            
+            <form id="profileSettingsForm" onsubmit="return false;">
+                <div class="form-group">
+                    <label for="newUsername">Change Username:</label>
+                    <input type="text" id="newUsername" name="newUsername" placeholder="Enter new username" required>
+                </div>
+                
+                <button type="submit" class="auth-button">Save Changes</button>
+                <button type="button" id="close-profile-modal" class="auth-button" style="background-color: #4a4a4a; margin-top: 10px;">Close</button>
+            </form>
+        </div>
+    </div>
+    
+    <div id="sentiment-modal" class="hidden">
+        <div class="auth-container" style="max-width: 600px; padding: 40px;">
+            <div class="auth-header" style="font-size: 1.5em; margin-bottom: 20px;">Sentiment Analyzer 😐</div>
+            
+            <form id="sentimentForm" onsubmit="return false;">
+                <div class="form-group">
+                    <label for="sentimentText">Text to Analyze:</label>
+                    <textarea id="sentimentText" name="sentimentText" placeholder="Paste a short text or headline here to check its sentiment (e.g., 'The market is soaring today with record profits!')" required></textarea>
+                </div>
+
+                <button type="submit" class="auth-button" id="analyzeSentimentBtn">Analyze Sentiment</button>
+                <button type="button" id="close-sentiment-modal" class="auth-button" style="background-color: #4a4a4a; margin-top: 10px;">Close</button>
+            </form>
+
+            <div id="sentimentResult" class="mt-8 pt-4 border-t border-gray-700/50 hidden">
+                <h4 class="font-bold text-lg mb-3 text-white">Result:</h4>
+                <div id="sentimentTextResult" class="p-4 rounded-md bg-[--input-background] text-sm text-[--text-color-login] border border-[--border-color]">
+                    Submit text to see the analysis result.
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="history-modal" class="hidden">
+        <div class="auth-container" style="max-width: 600px; padding: 40px;">
+            <div class="auth-header" style="font-size: 1.5em; margin-bottom: 20px;">Reading History 📚</div>
+            
+            <div id="history-list" class="space-y-4 max-h-96 overflow-y-auto pr-3" style="color: var(--text-color-login);">
+                <p id="history-empty" class="text-gray-500 text-center">Your reading history is empty. Start reading some news!</p>
+            </div>
+            
+            <div class="mt-8 flex justify-between items-center">
+                <button type="button" id="clear-history-btn" class="auth-button" style="width: 48%; background-color: #d97706; font-size: 1em;">Clear History</button>
+                <button type="button" id="close-history-modal" class="auth-button" style="width: 48%; background-color: #4a4a4a; margin-top: 0; font-size: 1em;">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="summary-modal" class="hidden">
+        <div class="auth-container">
+            <div class="auth-header" style="font-size: 1.5em; margin-bottom: 20px;">Get News Summary 📝</div>
+
+            <form id="summaryForm" onsubmit="return false;">
+                <div class="form-group">
+                    <label for="articleLink">Article URL:</label>
+                    <input type="url" id="articleLink" name="articleLink" value="https://www.hindustantimes.com/india-news/this-vande-bharat-is-first" placeholder="Paste the news article link here" required>
+                </div>
+
+                <button type="submit" class="auth-button" id="generateSummaryBtn">Generate Summary</button>
+                <button type="button" id="close-summary-modal" class="auth-button" style="background-color: #4a4a4a; margin-top: 10px;">Close</button>
+            </form>
+
+            <div id="summaryResult" class="mt-8 pt-4 border-t border-gray-700/50 hidden">
+                <h4 class="font-bold text-lg mb-3 text-white">Summary:</h4>
+                <div id="summaryText" class="p-4 rounded-md bg-[--input-background] text-sm text-[--text-color-login] border border-[--border-color]">
+                    Paste a link and click 'Generate Summary' to see the results.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="false-news-modal" class="hidden">
+        <div class="auth-container" style="max-width: 500px; padding: 40px;">
+            <div class="auth-header" style="font-size: 1.5em; margin-bottom: 25px;">False News Detector 🕵️</div>
+
+            <form id="falseNewsForm" onsubmit="return false;">
+                <div class="form-group">
+                    <label for="newsUrl">News Article/Image URL:</label>
+                    <input type="url" id="newsUrl" name="newsUrl" placeholder="Paste the image or article link here (e.g., from social media)">
+                </div>
+                
+                <div class="flex items-center my-4">
+                    <div class="flex-grow border-t border-gray-700"></div>
+                    <span class="flex-shrink mx-4 text-gray-500 text-sm">OR</span>
+                    <div class="flex-grow border-t border-gray-700"></div>
+                </div>
+
+                <div class="form-group text-center">
+                    <label for="newsImageUpload" class="block mb-3 text-sm font-medium">Upload Image from Device:</label>
+                    <input type="file" id="newsImageUpload" class="w-full text-sm text-gray-400
+                                                                     file:mr-4 file:py-2 file:px-4
+                                                                     file:rounded-full file:border-0
+                                                                     file:text-sm file:font-semibold
+                                                                     file:bg-[--bbc-red] file:text-white
+                                                                     hover:file:bg-red-700"
+                                                                     accept="image/*">
+                </div>
+
+                <button type="submit" class="auth-button" id="searchFalseNewsBtn">Check for False News</button>
+                <button type="button" id="close-false-news-modal" class="auth-button" style="background-color: #4a4a4a; margin-top: 10px;">Close</button>
+            </form>
+
+            <div id="falseNewsResult" class="mt-8 pt-4 border-t border-gray-700/50 hidden">
+                <h4 class="font-bold text-lg mb-3 text-white">Verification Result:</h4>
+                <div id="falseNewsText" class="p-4 rounded-md bg-[--input-background] text-sm text-[--text-color-login] border border-[--border-color]">
+                    Enter a URL or upload an image and click 'Check for False News' to start verification.
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize Lucide icons
+            lucide.createIcons();
+
+            const body = document.body;
+            const sidebar = document.getElementById('sidebar');
+            const toggleButton = document.getElementById('toggle-sidebar');
+            const categoryBtn = document.getElementById('category-dropdown-btn');
+            const categoryMenu = document.getElementById('category-dropdown-menu');
+
+            // --- Global State & Elements ---
+            let currentUsername = "Profile";
+            let readingHistory = []; // Array to store history
+
+            // History Elements
+            const historyModal = document.getElementById('history-modal');
+            const openHistoryModalBtn = document.getElementById('open-history-modal');
+            const closeHistoryModalBtn = document.getElementById('close-history-modal');
+            const historyList = document.getElementById('history-list');
+            const clearHistoryBtn = document.getElementById('clear-history-btn');
+            
+            // Summary Elements
+            const summaryModal = document.getElementById('summary-modal');
+            const openSummaryModalBtn = document.getElementById('open-summary-modal');
+            const closeSummaryModalBtn = document.getElementById('close-summary-modal');
+            const summaryForm = document.getElementById('summaryForm');
+            const articleLinkInput = document.getElementById('articleLink');
+            const generateSummaryBtn = document.getElementById('generateSummaryBtn');
+            const summaryResultDiv = document.getElementById('summaryResult');
+            const summaryTextDiv = document.getElementById('summaryText');
+
+            // False News Elements
+            const falseNewsModal = document.getElementById('false-news-modal');
+            const openFalseNewsModalBtn = document.getElementById('open-false-news-modal');
+            const closeFalseNewsModalBtn = document.getElementById('close-false-news-modal');
+            const falseNewsForm = document.getElementById('falseNewsForm');
+            const newsUrlInput = document.getElementById('newsUrl');
+            const newsImageUploadInput = document.getElementById('newsImageUpload');
+            const searchFalseNewsBtn = document.getElementById('searchFalseNewsBtn');
+            const falseNewsResultDiv = document.getElementById('falseNewsResult');
+            const falseNewsTextDiv = document.getElementById('falseNewsText');
+            
+            // NEW: Sentiment Elements
+            const sentimentModal = document.getElementById('sentiment-modal');
+            const openSentimentModalBtn = document.getElementById('open-sentiment-modal');
+            const closeSentimentModalBtn = document.getElementById('close-sentiment-modal');
+            const sentimentForm = document.getElementById('sentimentForm');
+            const sentimentTextarea = document.getElementById('sentimentText');
+            const analyzeSentimentBtn = document.getElementById('analyzeSentimentBtn');
+            const sentimentResultDiv = document.getElementById('sentimentResult');
+            const sentimentTextResultDiv = document.getElementById('sentimentTextResult');
+            // END NEW SENTIMENT ELEMENTS
+
+
+            // Auth Elements
+            const authModal = document.getElementById('auth-modal');
+            const openAuthModalBtn = document.getElementById('open-auth-modal');
+            const authLinkContainer = document.getElementById('auth-link-container');
+            
+            // Profile Elements
+            const profileModal = document.getElementById('profile-modal');
+            const openProfileModalBtn = document.getElementById('open-profile-modal');
+            const closeProfileModalBtn = document.getElementById('close-profile-modal');
+            const profileDisplay = document.getElementById('profile-display');
+            const profileUsernameDisplay = document.getElementById('profile-username');
+            const profilePicInput = document.getElementById('file-upload');
+            const currentProfilePic = document.getElementById('current-profile-pic');
+            const profileSettingsForm = document.getElementById('profileSettingsForm');
+            const newUsernameInput = document.getElementById('newUsername');
+
+            // Login/Register Elements
+            const loginTab = document.getElementById('loginTab');
+            const registerTab = document.getElementById('registerTab');
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const showRegisterLink = document.getElementById('showRegister');
+            const showLoginLink = document.getElementById('showLogin');
+            const registerFormElement = document.getElementById('registerForm').querySelector('form');
+            const loginFormElement = document.getElementById('loginForm').querySelector('form');
+            
+            // --- Helper Functions ---
+
+            function showLoginForm() {
+                loginTab.classList.add('active');
+                registerTab.classList.remove('active');
+                loginForm.classList.remove('hidden');
+                registerForm.classList.add('hidden');
+            }
+
+            function showRegisterForm() {
+                registerTab.classList.add('active');
+                loginTab.classList.remove('active');
+                registerForm.classList.remove('hidden');
+                loginForm.classList.add('hidden');
+            }
+
+            function handleLoginSuccess(username) {
+                authModal.style.display = 'none';
+                currentUsername = username;
+                
+                authLinkContainer.classList.add('hidden');
+                profileDisplay.classList.remove('hidden');
+                profileUsernameDisplay.textContent = currentUsername;
+                
+                alert(`👋 Welcome back, ${currentUsername}! You are now logged in.`);
+            }
+
+            function logArticleRead(title, source, url) {
+                const newEntry = {
+                    title: title,
+                    source: source,
+                    url: url,
+                    time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                };
+                if (readingHistory.length === 0 || readingHistory[0].url !== url) {
+                    readingHistory.unshift(newEntry);
+                }
+            }
+
+            function renderHistory() {
+                historyList.innerHTML = '';
+                
+                if (readingHistory.length === 0) {
+                    historyList.innerHTML = `<p id="history-empty" class="text-gray-500 text-center">Your reading history is empty. Start reading some news!</p>`;
+                    clearHistoryBtn.disabled = true;
+                    clearHistoryBtn.style.backgroundColor = '#4a4a4a';
+                    return;
+                }
+                
+                clearHistoryBtn.disabled = false;
+                clearHistoryBtn.style.backgroundColor = '#d97706';
+
+                readingHistory.forEach(entry => {
+                    const item = document.createElement('div');
+                    item.className = 'border-b border-gray-700 pb-2 mb-2 last:border-b-0 last:mb-0';
+                    item.innerHTML = `
+                        <a href="${entry.url}" target="_blank" rel="noopener noreferrer" class="text-white hover:text-red-400 font-medium leading-tight block">
+                            ${entry.title}
+                        </a>
+                        <span class="text-xs text-gray-400">Read from ${entry.source} at ${entry.time}</span>
+                    `;
+                    historyList.appendChild(item);
+                });
+            }
+            
+            // Function to simulate summary generation (UNCHANGED)
+            async function generateSummary(link) {
+                generateSummaryBtn.textContent = 'Generating... Please wait.';
+                generateSummaryBtn.disabled = true;
+                summaryResultDiv.classList.add('hidden');
+
+                // Simulate API call delay
+                await new Promise(resolve => setTimeout(resolve, 1500));
+
+                // SUCCESS condition: Check for the domain from the image or generic keywords
+                if (link.includes('example.com') || link.includes('placeholder') || link.includes('hindustantimes.com')) {
+                    summaryTextDiv.innerHTML = `
+                        <p class="font-bold text-white mb-3">Summary for: ${link.substring(0, 75)}...</p>
+                        <ul class="list-disc ml-5 space-y-2">
+                            <li>**Main Topic:** The article discusses a new milestone for the **Vande Bharat Express** in the Indian rail network.</li>
+                            <li>**Key Detail:** This particular train is the **first** of its kind on this specific route, focusing on advanced features and speed.</li>
+                            <li>**Impact:** The service is expected to significantly reduce travel time and enhance the passenger experience for commuters.</li>
+                            <li>**Future Plans:** Officials confirmed this launch is part of a larger government initiative to modernize rail travel across the country.</li>
+                        </ul>
+                        `;
+                } else {
+                    // FAILURE condition: Output matching the image for non-matching links
+                    summaryTextDiv.textContent = "Could not fetch content for this link. Please try a different news article URL (e.g., placeholder.com/news/article-title).";
+                }
+
+                generateSummaryBtn.textContent = 'Generate Summary';
+                generateSummaryBtn.disabled = false;
+                summaryResultDiv.classList.remove('hidden');
+            }
+
+            // Function to simulate false news check (UNCHANGED)
+            async function checkFalseNews(url, file) {
+                searchFalseNewsBtn.textContent = 'Verifying... Please wait.';
+                searchFalseNewsBtn.disabled = true;
+                falseNewsResultDiv.classList.add('hidden');
+                
+                // Simulate API call delay
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                let resultText = "";
+                if (file) {
+                    // Simulate result for image upload
+                    resultText = `<p class="font-bold text-white mb-2">Image Verification:</p>
+                                    <p style="color: #10b981;">✅ **Result:** The image was found in multiple reputable news sources and is likely **True/Verifiable**.
+                                    <span class="text-gray-400 block mt-2">Source: Reverse image search (Mock API) suggests original context: 'First official portrait of the new mayor'.</span></p>`;
+                } else if (url && url.trim() !== '') {
+                    // Simulate result for URL check
+                    if (url.includes('hoax') || url.includes('fake') || url.includes('satire')) {
+                        resultText = `<p class="font-bold text-white mb-2">URL Verification:</p>
+                                        <p style="color: #ef4444;">🚨 **Result:** This link points to a source known for **Misinformation** or **Satire**. Exercise caution.
+                                        <span class="text-gray-400 block mt-2">Source: Independent fact-checkers (Mock API) flagged this story as potentially misleading.</span></p>`;
+                    } else {
+                        resultText = `<p class="font-bold text-white mb-2">URL Verification:</p>
+                                        <p style="color: #10b981;">✅ **Result:** No immediate flags found for this URL or source. **Appears Legitimate**.
+                                        <span class="text-gray-400 block mt-2">Source: Cross-reference with major news agencies (Mock API) showed no conflicting reports.</span></p>`;
+                    }
+                } else {
+                    resultText = "Please provide either a URL or upload an image to start the verification process.";
+                }
+                
+                falseNewsTextDiv.innerHTML = resultText;
+                searchFalseNewsBtn.textContent = 'Check for False News';
+                searchFalseNewsBtn.disabled = false;
+                falseNewsResultDiv.classList.remove('hidden');
+            }
+            
+            // **CORRECTED:** Function to perform actual sentiment analysis via Flask API
+            async function analyzeSentiment(text) {
+                analyzeSentimentBtn.textContent = 'Analyzing...';
+                analyzeSentimentBtn.disabled = true;
+                sentimentResultDiv.classList.add('hidden');
+                
+                try {
+                    const response = await fetch('/api/sentiment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: text })
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        // Success: result contains { sentiment, emoji, color } from app.py
+                        const colorClass = result.color || 'text-gray-500'; 
+                        const emoji = result.emoji || '❓';
+                        const sentiment = result.sentiment || 'Unknown';
+                        
+                        // Use a Tailwind utility class for color (e.g., text-green-500)
+                        // Note: Tailwind classes must be fully present in the HTML/CSS for dynamic use.
+                        // Since we are using an inline style variable (via Tailwind color classes), we map:
+                        let colorHex = '';
+                        if (colorClass.includes('green')) colorHex = '#10b981'; // Tailwind green-500
+                        else if (colorClass.includes('red')) colorHex = '#ef4444'; // Tailwind red-500
+                        else if (colorClass.includes('yellow')) colorHex = '#f59e0b'; // Tailwind yellow-500
+                        else colorHex = '#9ca3af'; // Tailwind gray-400
+
+                        sentimentTextResultDiv.innerHTML = `
+                            <p class="font-bold text-white mb-2">Sentiment Analysis Result:</p>
+                            <p style="color: ${colorHex};" class="text-xl font-bold">
+                                ${emoji} **${sentiment}**
+                            </p>
+                            <span class="text-gray-400 block mt-2">The model predicted a **${sentiment.toLowerCase()}** sentiment based on the trained classifier.</span>
+                        `;
+                    } else {
+                        // Error from API (e.g., text is empty)
+                        sentimentTextResultDiv.innerHTML = `<p class="font-bold text-white mb-2">Sentiment Analysis Result:</p>
+                                                             <p style="color: #ef4444;">🚨 **Error:** ${result.error || 'An unknown error occurred on the server.'}</p>`;
+                    }
+
+                } catch (error) {
+                    console.error("Sentiment Analysis Fetch Error:", error);
+                    sentimentTextResultDiv.innerHTML = `<p class="font-bold text-white mb-2">Sentiment Analysis Result:</p>
+                                                         <p style="color: #ef4444;">❌ **Network Error:** Could not connect to the analysis service.</p>`;
+                } finally {
+                    analyzeSentimentBtn.textContent = 'Analyze Sentiment';
+                    analyzeSentimentBtn.disabled = false;
+                    sentimentResultDiv.classList.remove('hidden');
+                }
+            }
+            // END CORRECTED HELPER
+
+
+            // --- Event Handlers ---
+
+            toggleButton.addEventListener('click', () => {
+                body.classList.toggle('sidebar-collapsed');
+                if (body.classList.contains('sidebar-collapsed')) {
+                    categoryMenu.classList.add('hidden');
+                }
+            });
+
+            categoryBtn.addEventListener('click', () => {
+                if (!body.classList.contains('sidebar-collapsed')) {
+                    categoryMenu.classList.toggle('hidden');
+                    const chevron = categoryBtn.querySelector('[data-lucide="chevron-down"]');
+                    if (chevron) { chevron.classList.toggle('rotate-180'); }
+                }
+            });
+
+            document.addEventListener('click', (event) => {
+                if (!categoryBtn.contains(event.target) && !categoryMenu.contains(event.target)) {
+                    categoryMenu.classList.add('hidden');
+                    const chevron = categoryBtn.querySelector('[data-lucide="chevron-down"]');
+                    if (chevron) { chevron.classList.remove('rotate-180'); }
+                }
+            });
+
+            if (window.innerWidth < 768) {
+                body.classList.add('sidebar-collapsed');
+            }
+
+            openAuthModalBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                authModal.style.display = 'flex';
+                showLoginForm();
+            });
+            
+            openProfileModalBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                profileModal.style.display = 'flex';
+                newUsernameInput.value = currentUsername;
+            });
+
+            openHistoryModalBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                renderHistory();
+                historyModal.style.display = 'flex';
+            });
+            
+            // Open Summary Modal - ensures the default text is ready
+            openSummaryModalBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                summaryModal.style.display = 'flex';
+                // Reset summary output when modal is opened
+                summaryTextDiv.innerHTML = "Paste a link and click 'Generate Summary' to see the results.";
+                summaryResultDiv.classList.add('hidden');
+            });
+            
+            // Open False News Modal
+            openFalseNewsModalBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                falseNewsModal.style.display = 'flex';
+                // Reset output when modal is opened
+                falseNewsTextDiv.innerHTML = "Enter a URL or upload an image and click 'Check for False News' to start verification.";
+                falseNewsResultDiv.classList.add('hidden');
+                falseNewsForm.reset();
+            });
+            
+            // NEW: Open Sentiment Modal
+            openSentimentModalBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                sentimentModal.style.display = 'flex';
+                // Reset output when modal is opened
+                sentimentTextResultDiv.innerHTML = "Submit text to see the analysis result.";
+                sentimentResultDiv.classList.add('hidden');
+                sentimentForm.reset();
+            });
+            // END NEW HANDLER
+
+
+            closeHistoryModalBtn.addEventListener('click', () => {
+                historyModal.style.display = 'none';
+            });
+            
+            closeSummaryModalBtn.addEventListener('click', () => {
+                summaryModal.style.display = 'none';
+            });
+            
+            // Close False News Modal
+            closeFalseNewsModalBtn.addEventListener('click', () => {
+                falseNewsModal.style.display = 'none';
+            });
+            
+            // NEW: Close Sentiment Modal
+            closeSentimentModalBtn.addEventListener('click', () => {
+                sentimentModal.style.display = 'none';
+            });
+            // END NEW HANDLER
+
+            
+            // Summary Form Submission - Calls the new generateSummary logic
+            summaryForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const link = articleLinkInput.value.trim();
+                if (link) {
+                    generateSummary(link);
+                } else {
+                    alert("Please enter a valid article URL.");
+                }
+            });
+            
+            // False News Form Submission
+            falseNewsForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const url = newsUrlInput.value.trim();
+                const file = newsImageUploadInput.files[0];
+                
+                if (!url && !file) {
+                    alert("Please enter a URL or select an image to check for false news.");
+                    return;
+                }
+                
+                checkFalseNews(url, file);
+            });
+            
+            // **CORRECTED:** Sentiment Form Submission (now calls real API function)
+            sentimentForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const text = sentimentTextarea.value.trim();
+                
+                if (text.length < 5) {
+                    alert("Please enter a longer text to analyze.");
+                    return;
+                }
+                
+                analyzeSentiment(text); 
+            });
+            // END CORRECTED HANDLER
+
+            
+            clearHistoryBtn.addEventListener('click', () => {
+                if(confirm("Are you sure you want to clear your reading history? This cannot be undone.")) {
+                    readingHistory = [];
+                    renderHistory();
+                    alert("Reading history cleared!");
+                }
+            });
+
+            // Close Modals when clicking outside (UPDATED to include sentimentModal)
+            authModal.addEventListener('click', (e) => { if (e.target === authModal) { authModal.style.display = 'none'; } });
+            profileModal.addEventListener('click', (e) => { if (e.target === profileModal) { profileModal.style.display = 'none'; } });
+            historyModal.addEventListener('click', (e) => { if (e.target === historyModal) { historyModal.style.display = 'none'; } });
+            summaryModal.addEventListener('click', (e) => { if (e.target === summaryModal) { summaryModal.style.display = 'none'; } });
+            falseNewsModal.addEventListener('click', (e) => { if (e.target === falseNewsModal) { falseNewsModal.style.display = 'none'; } });
+            
+            sentimentModal.addEventListener('click', (e) => { if (e.target === sentimentModal) { sentimentModal.style.display = 'none'; } });
+
+
+            closeProfileModalBtn.addEventListener('click', () => {
+                profileModal.style.display = 'none';
+            });
+
+            // Tab & Link switching (Login/Register)
+            loginTab.addEventListener('click', showLoginForm);
+            registerTab.addEventListener('click', showRegisterForm);
+            showRegisterLink.addEventListener('click', (e) => { e.preventDefault(); showRegisterForm(); });
+            showLoginLink.addEventListener('click', (e) => { e.preventDefault(); showLoginForm(); });
+
+            // 1. Handle Register Form Submission
+            registerFormElement.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const name = document.getElementById('registerName').value;
+                const password = document.getElementById('registerPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+
+                if (password !== confirmPassword) { alert('❌ Error: Passwords do not match!'); return; }
+                if (password.length < 6) { alert('❌ Error: Password must be at least 6 characters long.'); return; }
+
+                handleLoginSuccess(name || 'Profile');
+                registerFormElement.reset();
+            });
+
+            // 2. Handle Login Form Submission
+            loginFormElement.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const email = document.getElementById('loginEmail').value;
+                const password = document.getElementById('loginPassword').value;
+
+                if (email === '' || password === '') { alert('❌ Error: Please enter both email and password.'); return; }
+
+                const username = email.split('@')[0];
+                handleLoginSuccess(username);
+                loginFormElement.reset();
+            });
+
+            // 3. Handle Profile Form Submission
+            profileSettingsForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const newUsername = newUsernameInput.value.trim();
+
+                if (newUsername === currentUsername) { alert("No changes made to the username."); profileModal.style.display = 'none'; return; }
+                if (newUsername.length < 3) { alert("Username must be at least 3 characters."); return; }
+
+                currentUsername = newUsername;
+                profileUsernameDisplay.textContent = currentUsername;
+
+                alert(`✅ Success! Username updated to: ${currentUsername}`);
+                profileModal.style.display = 'none';
+            });
+
+            // 4. Handle Profile Picture Change
+            profilePicInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        currentProfilePic.src = e.target.result;
+                        alert('Profile picture preview updated. Click "Save Changes" to finalize the settings.');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // Article Logging Logic
+            document.querySelectorAll('a[data-article-title]').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    const title = link.getAttribute('data-article-title');
+                    const source = link.getAttribute('data-article-source') || 'Veritas Chronicle';
+                    const url = link.href;
+
+                    logArticleRead(title, source, url);
+
+                    setTimeout(() => {
+                        window.open(url, link.target || '_self');
+                    }, 20);
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>
